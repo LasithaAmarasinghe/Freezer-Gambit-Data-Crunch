@@ -1,0 +1,97 @@
+name: Deploy FastAPI and Run Cron Job
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+  schedule:
+    # Run the workflow every day at midnight UTC
+    - cron: '0 0 * * *'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r deployment/requirements.txt
+
+    - name: Create necessary directories
+      run: |
+        mkdir -p Datasets/PriceData
+        mkdir -p Datasets/WeatherData
+        mkdir -p models
+
+    - name: Check if running as cron job
+      id: check-cron
+      run: |
+        if [[ "${{ github.event_name }}" == "schedule" ]]; then
+          echo "is_cron=true" >> $GITHUB_OUTPUT
+        else
+          echo "is_cron=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Run model retraining (if cron job)
+      if: steps.check-cron.outputs.is_cron == 'true'
+      run: |
+        python scripts/retrain_models.py
+
+    - name: Start FastAPI service (if not cron job)
+      if: steps.check-cron.outputs.is_cron == 'false'
+      run: |
+        nohup python deployment/main.py &
+        sleep 5  # Give the server time to start
+
+    - name: Set up ngrok
+      if: steps.check-cron.outputs.is_cron == 'false'
+      run: |
+        curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo gpg --dearmor -o /usr/share/keyrings/ngrok-archive-keyring.gpg
+        echo "deb [signed-by=/usr/share/keyrings/ngrok-archive-keyring.gpg] https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+        sudo apt update
+        sudo apt install ngrok
+
+    - name: Start ngrok tunnel
+      if: steps.check-cron.outputs.is_cron == 'false'
+      env:
+        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+      run: |
+        ngrok config add-authtoken $NGROK_AUTH_TOKEN
+        ngrok http 8000 --log=stdout > ngrok.log &
+        sleep 5
+
+    - name: Get public URL
+      if: steps.check-cron.outputs.is_cron == 'false'
+      run: |
+        NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
+        echo "Your API is available at: $NGROK_URL"
+        echo "API Docs available at: $NGROK_URL/docs"
+        echo "NGROK_URL=$NGROK_URL" >> $GITHUB_ENV
+
+    - name: Create status file with URL
+      if: steps.check-cron.outputs.is_cron == 'false'
+      run: |
+        echo "API URL: $NGROK_URL" > api_url.txt
+        echo "API Docs: $NGROK_URL/docs" >> api_url.txt
+
+    - name: Upload URL as artifact
+      if: steps.check-cron.outputs.is_cron == 'false'
+      uses: actions/upload-artifact@v4
+      with:
+        name: api-url
+        path: api_url.txt
+
+    - name: Keep alive
+      if: steps.check-cron.outputs.is_cron == 'false'
+      run: |
+        # Keep the workflow running for 6 hours (GitHub Actions has a 6-hour limit)
+        sleep 21600

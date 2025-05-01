@@ -19,11 +19,25 @@ The solution provides an API for forecasting future prices of agricultural commo
 - **Business Insights:** Provides actionable recommendations for AgroChill's cold storage strategy.
 
 ### Instructions
+
+#### Local Deployment
 ```
 docker pull lasitharandula/agrochill:latest
 docker run -p 8000:8000 lasitharandula/agrochill:latest
 http://localhost:8000/docs
 ```
+
+#### GitHub Actions Deployment
+The API is also deployed via GitHub Actions and is accessible 24/7. The workflow:
+1. Deploys the API and makes it accessible via a public URL
+2. Runs a cron job at midnight (00:00 UTC) daily to retrain all models with the latest data
+3. Provides the API URL as an artifact in the GitHub Actions workflow
+
+To access the deployed API:
+1. Go to the Actions tab in the GitHub repository
+2. Click on the latest successful workflow run
+3. Download the api-url artifact
+4. Open the URL in your browser to access the API documentation
 
 ### Model Accuracy
 ![Model Accuracy](src/accuracy.jpg)
