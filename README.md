@@ -22,3 +22,6 @@ The solution provides an API for forecasting future prices of agricultural commo
 docker pull lasitharandula/agrochill:latest
 docker run -p 8000:8000 lasitharandula/agrochill:latest
 http://localhost:8000/docs
+
+### Model Accuracy
+![Model Accuracy](src/accuracy.jpg)
