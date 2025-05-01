@@ -26,11 +26,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r deployment/requirements.txt
 
-    - name: Create necessary directories
+    # Directories are already in the repository
+    - name: Verify data directories
       run: |
-        mkdir -p Datasets/PriceData
-        mkdir -p Datasets/WeatherData
-        mkdir -p models
+        ls -la Datasets/PriceData
+        ls -la Datasets/WeatherData
+        ls -la models
 
     - name: Check if running as cron job
       id: check-cron
@@ -45,6 +46,16 @@ jobs:
       if: steps.check-cron.outputs.is_cron == 'true'
       run: |
         python scripts/retrain_models.py
+
+    - name: Train models (if not already trained)
+      run: |
+        # Check if models exist, if not train them
+        if [ ! -f "./models/nbeats_model" ] || [ ! -f "./models/crop_impact_model.pkl" ]; then
+          echo "Training models..."
+          python scripts/retrain_models.py
+        else
+          echo "Models already exist, skipping training"
+        fi
 
     - name: Start FastAPI service (if not cron job)
       if: steps.check-cron.outputs.is_cron == 'false'
