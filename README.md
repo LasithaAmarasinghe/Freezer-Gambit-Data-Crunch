@@ -17,3 +17,8 @@ The solution provides an API for forecasting future prices of agricultural commo
 - **Data Pipeline:** Incorporates new data dynamically through APIs or streaming sources.
 - **Dockerized:** The entire solution is packaged within a Docker container for easy deployment.
 - **Business Insights:** Provides actionable recommendations for AgroChill's cold storage strategy.
+
+### Instructions
+docker pull lasitharandula/agrochill:latest
+docker run -p 8000:8000 lasitharandula/agrochill:latest
+http://localhost:8000/docs
