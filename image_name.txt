@@ -1,0 +1,6 @@
+docker.io/lasitharandula/agrochill:latest
+https://hub.docker.com/r/lasitharandula/agrochill
+
+# Instructions
+docker pull lasitharandula/agrochill:latest
+docker run -p 8000:8000 lasitharandula/agrochill:latest
