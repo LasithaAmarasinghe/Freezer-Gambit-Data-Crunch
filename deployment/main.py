@@ -91,7 +91,7 @@ def retrain_whether_impact_model():
     ])
 
     model_pipeline.fit(features, target)
-    joblib.dump(model_pipeline, "crop_impact_model.pkl")
+    joblib.dump(model_pipeline, "./models/crop_impact_model.pkl")
 
 def retrain_all_models():
     try:
